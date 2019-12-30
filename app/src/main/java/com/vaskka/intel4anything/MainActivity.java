@@ -18,7 +18,9 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 import com.vaskka.intel4anything.utils.Constant;
+import com.vaskka.intel4anything.utils.Util;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -39,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private Handler mainHandler = new Handler() {
          public void handleMessage(Message msg) {
              super.handleMessage(msg);
+
              try {
                  String ps = msg.getData().get("position").toString();
                  centerTextView.setText(ps);
@@ -56,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
     void doRequest() {
 
         HttpUrl.Builder urlBuilder = HttpUrl.parse(Constant.base_url).newBuilder();
-        urlBuilder.addQueryParameter("id", Constant.id);
+        urlBuilder.addQueryParameter("cameraid", Util.getRandomId());
         String url = urlBuilder.build().toString();
 
         Request request = new Request.Builder()
@@ -89,7 +92,13 @@ public class MainActivity extends AppCompatActivity {
                         Message message = new Message();
                         Bundle bundle = new Bundle();
 
-                        bundle.putString("position", jsonObject.getString("position"));
+                        JSONArray pathArray = jsonObject.getJSONArray("path");
+
+                        StringBuilder sb = new StringBuilder(pathArray.getJSONObject(1).getString("nodeName"));
+                        sb.insert(0, "请向：");
+                        sb.append(" 方向行进。");
+
+                        bundle.putString("position", sb.toString());
                         message.setData(bundle);
 
                         // send signal to main thread
@@ -131,7 +140,7 @@ public class MainActivity extends AppCompatActivity {
         };
 
         // 3s 1次
-        timer.schedule(task,0, Constant.timer_internal);
+        timer.schedule(task,3000, Constant.timer_internal);
     }
 
 

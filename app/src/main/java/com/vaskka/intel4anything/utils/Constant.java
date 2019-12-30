@@ -6,7 +6,7 @@ public class Constant {
     public static String id = "1";
 
     // base url
-    public static String base_url = "http://106.13.113.17:8080/getNearestFreeExit";
+    public static String base_url = "http://pu.zaeyi.com:12580/getBestPath";
 
     // ring call internal
     public static int timer_internal = 3 * 1000;
