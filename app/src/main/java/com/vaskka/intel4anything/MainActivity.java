@@ -5,13 +5,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.TextView;
 
-import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.HttpUrl;
 import com.squareup.okhttp.OkHttpClient;
@@ -20,7 +19,6 @@ import com.squareup.okhttp.Response;
 import com.vaskka.intel4anything.utils.Constant;
 import com.vaskka.intel4anything.utils.Util;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -59,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
     void doRequest() {
 
         HttpUrl.Builder urlBuilder = HttpUrl.parse(Constant.base_url).newBuilder();
-        urlBuilder.addQueryParameter("cameraid", Util.getRandomId());
+        urlBuilder.addQueryParameter("id", Util.getRandomId());
         String url = urlBuilder.build().toString();
 
         Request request = new Request.Builder()
@@ -79,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
                     // 未找到id
                     Log.e("response", "Unexpected code:" + response.code());
-                    throw new IOException("Unexpected code " + response);
+                    throw new IOException("Unexpected code while request api:" + response);
                 } else {
 
                     String bodyString = response.body().string();
@@ -92,12 +90,12 @@ public class MainActivity extends AppCompatActivity {
                         Message message = new Message();
                         Bundle bundle = new Bundle();
 
-                        JSONArray pathArray = jsonObject.getJSONArray("path");
+                        // deal json body
+                        StringBuilder sb = new StringBuilder(jsonObject.getString("nodeName"));
+                        sb.insert(0, "请向【");
+                        sb.append("】方向行进。");
 
-                        StringBuilder sb = new StringBuilder(pathArray.getJSONObject(1).getString("nodeName"));
-                        sb.insert(0, "请向：");
-                        sb.append(" 方向行进。");
-
+                        // put into bundle
                         bundle.putString("position", sb.toString());
                         message.setData(bundle);
 
@@ -139,15 +137,14 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
-        // 3s 1次
-        timer.schedule(task,3000, Constant.timer_internal);
+        // timer_internal 1次 延时 相同
+        timer.schedule(task, Constant.timer_internal, Constant.timer_internal);
     }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
 
         initView();
         initData();

@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Intel4Anything</string>
+    <string name="app_name">Public OverWatch Display Board</string>
+    <string name="main_center_default">欢迎使用Public OverWatch展示牌</string>
 </resources>

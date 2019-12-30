@@ -8,7 +8,9 @@ public class Util {
 
         Random random = new Random();
 
-        return String.valueOf((random.nextInt() % 30) + 1);
+        int randomId = Math.abs(random.nextInt()) % Constant.max_valid_node_id + 1;
+
+        return String.valueOf(randomId);
     }
 
 
