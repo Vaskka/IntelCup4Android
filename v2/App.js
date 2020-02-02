@@ -85,6 +85,14 @@ class ShowCard extends Component {
             ]}>
             请向 {this.state.nextPosition} 位置行进。
           </Text>
+          <View style={cardStyles.cardBottomButtonContainer}>
+            <Button
+              onPress={this.moveToNextNode.bind(this)}
+              title={'测试移动到下一区域'}
+              style={cardStyles.bottomButton}
+              color={'#008df8'}
+            />
+          </View>
         </View>
       </View>
     );
@@ -101,10 +109,16 @@ class ShowCard extends Component {
     })
       .then(resp => {
         let respData = resp.data;
-        this.setState({
-          nextId: respData.nodeid,
-          nextPosition: respData.nodeName,
-        });
+
+        if (respData.nodeid === this.state.nextId) {
+          // 到达尽头，重新选择节点
+          this.genNewId();
+        } else {
+          this.setState({
+            nextId: respData.nodeid,
+            nextPosition: respData.nodeName,
+          });
+        }
       })
       .catch(e => {
         console.log(e);
@@ -140,10 +154,29 @@ class ShowCard extends Component {
   }
 
   /**
-   * move to next node
+   * 重新生成id
    */
-  moveToNextNode() {
-    this.setState({
+  async genNewId() {
+    let randomId = Math.floor(((Math.random() * 0xffffff) % 80) + 1);
+
+    console.log(randomId);
+
+    await this.setState({
+      currentId: randomId,
+    });
+
+    // 更新人数
+    this.getCurrentNodeNumber();
+
+    // 更新节点
+    this.getNextNode();
+  }
+
+  /**
+   * move to next node touch event
+   */
+  async moveToNextNode() {
+    await this.setState({
       currentId: this.state.nextId,
       currentPosition: this.state.nextPosition,
     });
@@ -170,8 +203,10 @@ const cardStyles = StyleSheet.create({
   },
   cardBottomButtonContainer: {
     flex: 1,
-    backgroundColor: "green",
-    color: "black",
+    width: 300,
+    justifyContent: 'space-evenly',
+    alignSelf: 'center',
+    color: 'black',
   },
   cardTop: {
     flex: 1,
@@ -191,7 +226,7 @@ const cardStyles = StyleSheet.create({
   },
   cardBottom: {
     flex: 2,
-    backgroundColor: "red",
+    justifyContent: 'space-evenly',
     margin: 10,
     borderRadius: 10,
   },
@@ -205,7 +240,12 @@ const cardStyles = StyleSheet.create({
   },
   tipMsg: {
     flex: 1,
-  }
+  },
+  bottomButton: {
+    alignSelf: 'stretch',
+    flex: 1,
+    marginTop: 30,
+  },
 });
 
 export default class PublicOverwatchApp extends Component {
@@ -257,8 +297,6 @@ const mainStyles = StyleSheet.create({
     backgroundColor: '#008df8',
   },
   centerText: {
-    // textAlign: 'center',
-    // verticalAlign: 'middle',
     alignSelf: 'center',
     fontSize: 40,
     color: '#111',
