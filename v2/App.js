@@ -159,8 +159,6 @@ class ShowCard extends Component {
   async genNewId() {
     let randomId = Math.floor(((Math.random() * 0xffffff) % 80) + 1);
 
-    console.log(randomId);
-
     await this.setState({
       currentId: randomId,
     });
