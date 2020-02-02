@@ -6,109 +6,261 @@
  * @flow
  */
 
-import React from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  ScrollView,
-  View,
-  Text,
-  StatusBar,
-} from 'react-native';
+import React, {Component} from 'react';
+import {View, Text, StyleSheet, ImageBackground, Button} from 'react-native';
+import Axios from 'axios';
 
-import {
-  Header,
-  LearnMoreLinks,
-  Colors,
-  DebugInstructions,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+// 常量
+const CONST = {
+  DEFAULT_ID: 79,
+  DEFAULT_POSITION: '综C201',
+  // url
+  GATEWAY: 'http://pu.zaeyi.com:12580',
+  // 下一节点
+  GET_NEXT_NODE_DOMAIN: '/getNearestFreeExit',
+  // 当前节点人数
+  GET_CURRENT_NUMBER: '/getCurrentNumById',
 
-const App: () => React$Node = () => {
-  return (
-    <>
-      <StatusBar barStyle="dark-content" />
-      <SafeAreaView>
-        <ScrollView
-          contentInsetAdjustmentBehavior="automatic"
-          style={styles.scrollView}>
-          <Header />
-          {global.HermesInternal == null ? null : (
-            <View style={styles.engine}>
-              <Text style={styles.footer}>Engine: Hermes</Text>
-            </View>
-          )}
-          <View style={styles.body}>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Step One</Text>
-              <Text style={styles.sectionDescription}>
-                Edit <Text style={styles.highlight}>App.js</Text> to change this
-                screen and then come back to see your edits.
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>See Your Changes</Text>
-              <Text style={styles.sectionDescription}>
-                <ReloadInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Debug</Text>
-              <Text style={styles.sectionDescription}>
-                <DebugInstructions />
-              </Text>
-            </View>
-            <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>Learn More</Text>
-              <Text style={styles.sectionDescription}>
-                Read the docs to discover what to do next:
-              </Text>
-            </View>
-            <LearnMoreLinks />
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
-  );
+  // other
+  // 轮询间隔ms
+  POLL_TIMEOUT: 1000,
 };
 
-const styles = StyleSheet.create({
-  scrollView: {
-    backgroundColor: Colors.lighter,
+// 卡片展示
+class ShowCard extends Component {
+  state = {
+    // 当前节点id
+    currentId: CONST.DEFAULT_ID,
+    // 当前节点名称
+    currentPosition: CONST.DEFAULT_POSITION,
+    // 当前节点的人数
+    currentNum: 0,
+    // 下一节点id
+    nextId: CONST.DEFAULT_ID,
+    // 下一节点名称
+    nextPosition: CONST.DEFAULT_POSITION,
+  };
+
+  componentDidMount() {
+    // 获取当前节点人数, 轮询获取
+    this.getCurrentNodeNumber();
+
+    // 获取下一个节点
+    this.getNextNode();
+  }
+
+  /**
+   * render
+   */
+  render() {
+    return (
+      <View style={cardStyles.mainCard}>
+        <View style={cardStyles.cardTop}>
+          <View
+            style={[
+              cardStyles.topTextContainer,
+              cardStyles.topTextLeftContainer,
+            ]}>
+            <Text style={[mainStyles.centerText, cardStyles.smallText]}>
+              当前位置: {this.state.currentPosition}。
+            </Text>
+          </View>
+          <View
+            style={[
+              cardStyles.topTextContainer,
+              cardStyles.topTextRightContainer,
+            ]}>
+            <Text style={[mainStyles.centerText, cardStyles.smallText]}>
+              目前有 {this.state.currentNum} 人在您附近。
+            </Text>
+          </View>
+        </View>
+
+        <View style={cardStyles.cardBottom}>
+          <Text
+            style={[
+              mainStyles.centerText,
+              cardStyles.middleText,
+              cardStyles.tipMsg,
+            ]}>
+            请向 {this.state.nextPosition} 位置行进。
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  /**
+   * 获取下一节点
+   */
+  getNextNode() {
+    Axios.get(CONST.GATEWAY + CONST.GET_NEXT_NODE_DOMAIN, {
+      params: {
+        id: this.state.currentId,
+      },
+    })
+      .then(resp => {
+        let respData = resp.data;
+        this.setState({
+          nextId: respData.nodeid,
+          nextPosition: respData.nodeName,
+        });
+      })
+      .catch(e => {
+        console.log(e);
+      });
+  }
+
+  /**
+   * 得到当前节点的人数并更新
+   */
+  getCurrentNodeNumber() {
+    let timer;
+    Axios.get(CONST.GATEWAY + CONST.GET_CURRENT_NUMBER, {
+      params: {
+        id: this.state.currentId,
+      },
+    })
+      .then(resp => {
+        if (resp) {
+          this.setState({
+            currentNum: Number(resp.data),
+          });
+
+          timer = setTimeout(() => {
+            this.getCurrentNodeNumber();
+          }, CONST.POLL_TIMEOUT);
+        } else {
+          clearTimeout(timer);
+        }
+      })
+      .catch(e => {
+        console.log(e);
+      });
+  }
+
+  /**
+   * move to next node
+   */
+  moveToNextNode() {
+    this.setState({
+      currentId: this.state.nextId,
+      currentPosition: this.state.nextPosition,
+    });
+
+    // 更新人数
+    this.getCurrentNodeNumber();
+
+    // 更新节点
+    this.getNextNode();
+  }
+}
+
+// 中间卡片样式
+const cardStyles = StyleSheet.create({
+  mainCard: {
+    flex: 1,
+    backgroundColor: '#eeeeee',
+    marginTop: 20,
+    marginBottom: 20,
+    marginLeft: 35,
+    marginRight: 35,
+
+    borderRadius: 10,
   },
-  engine: {
-    position: 'absolute',
-    right: 0,
+  cardBottomButtonContainer: {
+    flex: 1,
+    backgroundColor: "green",
+    color: "black",
   },
-  body: {
-    backgroundColor: Colors.white,
+  cardTop: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#eeeeee',
+    borderRadius: 10,
   },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  topTextContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.black,
+  topTextLeftContainer: {
+    borderTopLeftRadius: 10,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-    color: Colors.dark,
+  topTextRightContainer: {
+    borderTopRightRadius: 10,
   },
-  highlight: {
-    fontWeight: '700',
+  cardBottom: {
+    flex: 2,
+    backgroundColor: "red",
+    margin: 10,
+    borderRadius: 10,
   },
-  footer: {
-    color: Colors.dark,
-    fontSize: 12,
-    fontWeight: '600',
-    padding: 4,
-    paddingRight: 12,
-    textAlign: 'right',
+  smallText: {
+    fontSize: 25,
+    top: 20,
   },
+  middleText: {
+    fontSize: 30,
+    top: 16,
+  },
+  tipMsg: {
+    flex: 1,
+  }
 });
 
-export default App;
+export default class PublicOverwatchApp extends Component {
+  render() {
+    return (
+      <View style={mainStyles.mainContainer}>
+        <ImageBackground
+          style={mainStyles.backgroundLogo}
+          source={require('./asserts/mylogo.png')}
+        />
+        <View style={mainStyles.mainTitle}>
+          <View style={mainStyles.titleContainer}>
+            <Text style={mainStyles.centerText}>Public Overwatch Edge</Text>
+          </View>
+        </View>
+        <View style={mainStyles.mainBody}>
+          <ShowCard />
+        </View>
+      </View>
+    );
+  }
+}
+
+// 全局样式
+const mainStyles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+  },
+
+  backgroundLogo: {
+    position: 'absolute',
+    height: 115,
+    width: '100%',
+    marginBottom: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+
+  titleContainer: {
+    flex: 1,
+    justifyContent: 'space-evenly',
+  },
+  mainTitle: {
+    flex: 1,
+  },
+  mainBody: {
+    flex: 3,
+    backgroundColor: '#008df8',
+  },
+  centerText: {
+    // textAlign: 'center',
+    // verticalAlign: 'middle',
+    alignSelf: 'center',
+    fontSize: 40,
+    color: '#111',
+  },
+});
